@@ -25,6 +25,8 @@ Possibilité de mettre une batterie externe type "de téléphone", mais + lourd 
 
 ## Code
 
+Lien de l'interface web (il faut activer le bluetooth et autoriser chrome à se connecter au bluetooth) : https://luciemrc.github.io/RC_CAR/
+
 ![schema de branchement](/schema_branchement.png).
 
 Basé sur le template [ESP32 BLE de Valentin](https://ateliernum-templates.pages.dev/Arduino/ESP32_webBLE/).
