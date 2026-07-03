@@ -4,7 +4,7 @@
 
 **2 servos moteurs continus** ([ref FT90R](https://www.gotronic.fr/art-servomoteur-ft90r-36020.htm?srsltid=AfmBOopCgoX5uPFUqWo006R-Ub7qdDmt9tJ0VlkPBpohfDMpsQIEAxP-)).
 
-![schema de branchement](/dimensions_servoMoteur.png).
+<img src="dimensions_servoMoteur.png" alt="schema de branchemen" width="200"/>
 
 Dimensions: 22,5 x 12,1 x 22,4 mm
 
