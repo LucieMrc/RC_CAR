@@ -18,6 +18,11 @@ Dimensions: 19 x 19 x 9 mm
 
 **1 batterie**
 
+Dimensions: 40 x 25 x 5 mm
+Plusieurs dimensions ou facteurs de forme différents.
+
+Possibilité de mettre une batterie externe type "de téléphone", mais + lourd et + grand.
+
 ## Code
 
 ![schema de branchement](/schema_branchement.png).
@@ -25,8 +30,12 @@ Dimensions: 19 x 19 x 9 mm
 Basé sur le template [ESP32 BLE de Valentin](https://ateliernum-templates.pages.dev/Arduino/ESP32_webBLE/).
 
 Arduino : `ESP32_RC_CAR.ino`
+
 Code web : `index.html`
 
+![interface web](/interface.png).
+
+*Interface web version desktop*
 
 ## Pour aller + loin
 
