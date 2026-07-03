@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <title>ESP32 WebBLE Tank RC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        padding: 20px 10px;
+        background: #2c3e50;
+        color: #ecf0f1;
+        /* Désactive la sélection de texte et les gestes parasites sur mobile */
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none; 
+        margin: 0;
+      }
+      
+      h1 { margin-top: 10px; font-size: 24px; }
+
+      .connect-btn { 
+        background: #f1c40f; 
+        color: #2c3e50; 
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 8px;
+        border: none;
+        margin-bottom: 10px;
+        transition: 0.2s;
+        width: 90%;
+        max-width: 400px;
+      }
+      .connect-btn:active { transform: scale(0.95); }
+      .connect-btn:disabled { background: #7f8c8d; color: #bdc3c7; cursor: not-allowed; transform: none; }
+
+      #status { margin-bottom: 20px; font-weight: bold; color: #1abc9c; }
+
+      /* Grille pour les contrôles (Gauche / Droite) */
+      .controls-grid {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .track-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        width: 45%;
+      }
+
+      .track-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #bdc3c7;
+      }
+
+      /* Style des boutons de pilotage */
+      .drive-btn {
+        height: 100px;
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        /* Empêche le menu contextuel au clic long sur mobile */
+        -webkit-touch-callout: none;
+      }
+
+      .fwd { background: #27ae60; box-shadow: 0 6px 0 #1e8449; }
+      .fwd:active, .fwd.active-touch { background: #2ecc71; box-shadow: 0 2px 0 #1e8449; transform: translateY(4px); }
+
+      .rev { background: #e74c3c; box-shadow: 0 6px 0 #c0392b; }
+      .rev:active, .rev.active-touch { background: #ff6b81; box-shadow: 0 2px 0 #c0392b; transform: translateY(4px); }
+
+      .drive-btn:disabled { 
+        background: #95a5a6; 
+        box-shadow: none; 
+        cursor: not-allowed; 
+        transform: none; 
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Télécommande Tank RC</h1>
+
+    <button id="connectBtn" class="connect-btn">Connecter la voiture</button>
+    <div id="status">Statut: Déconnecté</div>
+
+    <div class="controls-grid">
+      <div class="track-column">
+        <div class="track-title">MOTEUR GAUCHE</div>
+        <button id="lFwd" class="drive-btn fwd" disabled>AVANT</button>
+        <button id="lRev" class="drive-btn rev" disabled>ARRIÈRE</button>
+      </div>
+
+      <div class="track-column">
+        <div class="track-title">MOTEUR DROIT</div>
+        <button id="rFwd" class="drive-btn fwd" disabled>AVANT</button>
+        <button id="rRev" class="drive-btn rev" disabled>ARRIÈRE</button>
+      </div>
+    </div>
+
+    <script>
+      // --- UUIDs (Doivent correspondre exactement au code Arduino) ---
+      const SERVICE_UUID    = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+      const CHAR_LEFT_UUID  = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+      const CHAR_RIGHT_UUID = "ceb5483e-36e1-4688-b7f5-ea07361b26a9";
+
+      let device, server, service;
+      let leftChar, rightChar;
+
+      // Éléments du DOM
+      const connectBtn = document.getElementById("connectBtn");
+      const statusMsg = document.getElementById("status");
+      
+      const lFwdBtn = document.getElementById("lFwd");
+      const lRevBtn = document.getElementById("lRev");
+      const rFwdBtn = document.getElementById("rFwd");
+      const rRevBtn = document.getElementById("rRev");
+
+      const allDriveBtns = [lFwdBtn, lRevBtn, rFwdBtn, rRevBtn];
+
+      // --- CONNEXION BLUETOOTH ---
+      connectBtn.addEventListener("click", async () => {
+        try {
+          statusMsg.innerText = "Recherche de 'ESP32_Tank_RC'...";
+          statusMsg.style.color = "#f39c12";
+
+          device = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [SERVICE_UUID] }]
+          });
+
+          statusMsg.innerText = "Connexion en cours...";
+          server = await device.gatt.connect();
+          service = await server.getPrimaryService(SERVICE_UUID);
+          
+          // Récupération des deux caractéristiques
+          leftChar = await service.getCharacteristic(CHAR_LEFT_UUID);
+          rightChar = await service.getCharacteristic(CHAR_RIGHT_UUID);
+
+          statusMsg.innerText = "Connecté et Prêt !";
+          statusMsg.style.color = "#2ecc71";
+          connectBtn.disabled = true;
+
+          // Activer les boutons
+          allDriveBtns.forEach(btn => btn.disabled = false);
+
+          // Gestion de la déconnexion
+          device.addEventListener("gattserverdisconnected", () => {
+            statusMsg.innerText = "Déconnecté";
+            statusMsg.style.color = "#e74c3c";
+            connectBtn.disabled = false;
+            allDriveBtns.forEach(btn => btn.disabled = true);
+          });
+
+        } catch (error) {
+          console.log(error);
+          statusMsg.innerText = "Erreur: " + error.message;
+          statusMsg.style.color = "#e74c3c";
+        }
+      });
+
+      // --- FONCTION D'ENVOI BLE ---
+      async function sendMotorValue(characteristic, val) {
+        if (characteristic) {
+          const data = new Uint8Array([val]);
+          // writeValueWithoutResponse est idéal pour la faible latence nécessaire au pilotage RC
+          await characteristic.writeValueWithoutResponse(data).catch(e => console.log("Erreur BLE:", e));
+        }
+      }
+
+      // --- ASSIGNATION DES ÉVÉNEMENTS (Moteur Gauche) ---
+      
+      // Avant Gauche
+      lFwdBtn.addEventListener("mousedown", () => sendMotorValue(leftChar, 1));
+      lFwdBtn.addEventListener("mouseup", () => sendMotorValue(leftChar, 0));
+      lFwdBtn.addEventListener("mouseleave", () => sendMotorValue(leftChar, 0));
+      
+      lFwdBtn.addEventListener("touchstart", (e) => { e.preventDefault(); lFwdBtn.classList.add("active-touch"); sendMotorValue(leftChar, 1); }, {passive: false});
+      lFwdBtn.addEventListener("touchend", (e) => { e.preventDefault(); lFwdBtn.classList.remove("active-touch"); sendMotorValue(leftChar, 0); });
+      lFwdBtn.addEventListener("touchcancel", (e) => { e.preventDefault(); lFwdBtn.classList.remove("active-touch"); sendMotorValue(leftChar, 0); });
+
+      // Arrière Gauche
+      lRevBtn.addEventListener("mousedown", () => sendMotorValue(leftChar, 2));
+      lRevBtn.addEventListener("mouseup", () => sendMotorValue(leftChar, 0));
+      lRevBtn.addEventListener("mouseleave", () => sendMotorValue(leftChar, 0));
+      
+      lRevBtn.addEventListener("touchstart", (e) => { e.preventDefault(); lRevBtn.classList.add("active-touch"); sendMotorValue(leftChar, 2); }, {passive: false});
+      lRevBtn.addEventListener("touchend", (e) => { e.preventDefault(); lRevBtn.classList.remove("active-touch"); sendMotorValue(leftChar, 0); });
+      lRevBtn.addEventListener("touchcancel", (e) => { e.preventDefault(); lRevBtn.classList.remove("active-touch"); sendMotorValue(leftChar, 0); });
+
+
+      // --- ASSIGNATION DES ÉVÉNEMENTS (Moteur Droit) ---
+      
+      // Avant Droit
+      rFwdBtn.addEventListener("mousedown", () => sendMotorValue(rightChar, 1));
+      rFwdBtn.addEventListener("mouseup", () => sendMotorValue(rightChar, 0));
+      rFwdBtn.addEventListener("mouseleave", () => sendMotorValue(rightChar, 0));
+      
+      rFwdBtn.addEventListener("touchstart", (e) => { e.preventDefault(); rFwdBtn.classList.add("active-touch"); sendMotorValue(rightChar, 1); }, {passive: false});
+      rFwdBtn.addEventListener("touchend", (e) => { e.preventDefault(); rFwdBtn.classList.remove("active-touch"); sendMotorValue(rightChar, 0); });
+      rFwdBtn.addEventListener("touchcancel", (e) => { e.preventDefault(); rFwdBtn.classList.remove("active-touch"); sendMotorValue(rightChar, 0); });
+
+      // Arrière Droit
+      rRevBtn.addEventListener("mousedown", () => sendMotorValue(rightChar, 2));
+      rRevBtn.addEventListener("mouseup", () => sendMotorValue(rightChar, 0));
+      rRevBtn.addEventListener("mouseleave", () => sendMotorValue(rightChar, 0));
+      
+      rFwdBtn.addEventListener("touchstart", (e) => { e.preventDefault(); rFwdBtn.classList.add("active-touch"); sendMotorValue(rightChar, 2); }, {passive: false});
+      rRevBtn.addEventListener("touchend", (e) => { e.preventDefault(); rFwdBtn.classList.remove("active-touch"); sendMotorValue(rightChar, 0); });
+      rRevBtn.addEventListener("touchcancel", (e) => { e.preventDefault(); rFwdBtn.classList.remove("active-touch"); sendMotorValue(rightChar, 0); });
+
+    </script>
+  </body>
+</html>
