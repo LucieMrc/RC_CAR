@@ -15,12 +15,9 @@ const int rightPin = 18;  // Signal du moteur droit
 Servo leftServo;
 Servo rightServo;
 
-// --- CONFIGURATION PHYSIQUE DES MOTEURS ---
-// Si votre robot recule au lieu d'avancer quand vous activez les deux moteurs,
-// changez simplement cette constante (true ou false) pour adapter le sens de rotation.
+// Booléen pour propulsion vs traction
 const bool INVERT_RIGHT = true;
 
-// --- CONSTANTES EN MICROSECONDES (Haute Précision) ---
 const int STOP_VALUE = 1500;   // Point mort exact
 const int FORWARD_MAX = 2100;  // Pleine vitesse Avant (logique)
 const int REVERSE_MAX = 900;   // Pleine vitesse Arrière (logique)
